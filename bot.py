@@ -213,6 +213,21 @@ async def ask_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     question = parts[1] if len(parts) > 1 else "Подскажи, как рассказать о круассане."
     reply = await ai_answer_llm(question) if have_openai() else rule_based_answer(question)
     await update.message.reply_text(reply + "\n\n_— Макар Макарыч 🥐_", parse_mode="Markdown")
+# --- keepalive для Koyeb/хостингов, требующих открытый порт ---
+import os, threading
+def _keepalive():
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"ok")
+    port = int(os.getenv("PORT", "8080"))  # Koyeb пробрасывает PORT
+    HTTPServer(("0.0.0.0", port), Handler).serve_forever()
+
+# Запускаем keepalive параллельно с ботом
+threading.Thread(target=_keepalive, daemon=True).start()
+
 
 # === MAIN ===
 async def run_bot():
